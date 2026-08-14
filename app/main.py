@@ -1,10 +1,12 @@
 import time
+from llm_client import LLMClient
 from difflib import SequenceMatcher
 
 from audio_capture import DualAudioCapture
 from transcriber import Transcriber
 from transcript_store import TranscriptStore
 from meeting_context import MeetingContext
+from conversation_processor import ConversationProcessor
 
 
 CHUNK_DURATION = 60
@@ -148,6 +150,13 @@ def main():
             recent_seconds=300
         )
 
+        processor = ConversationProcessor()
+
+        llm = LLMClient()
+
+        last_llm_call = time.time()
+        LLM_INTERVAL = 180  # 3 minutes
+
         print("\nTranscript files:")
         print("TXT :", store.txt_file)
         print("JSON:", store.json_file)
@@ -258,12 +267,6 @@ def main():
             chunk_start = (
                 (chunk_number - 1)
                 * CHUNK_DURATION
-            )
-
-            chunk_end = (
-                chunk_start
-                + CHUNK_DURATION
-                + OVERLAP
             )
 
             overlap_start = (
@@ -382,46 +385,113 @@ def main():
             )
 
             # ====================================
-            # CONTEXT
+            # PROCESS CONVERSATION
             # ====================================
 
+            combined = processor.process(
+                combined
+            )
+
+            # Add cleaned conversation to context
             context.add_segments(
                 combined
             )
+
+
+            
+            
+
+            # ====================================
+            # BUILD CLEAN CONTEXT
+            # ====================================
+
+            conversation = (
+                processor.build_conversation(
+                    combined
+                )
+            )
+
+            questions = (
+                processor.find_questions(
+                    combined
+                )
+            )
+
+            important = (
+                processor.find_important(
+                    combined
+                )
+            )
+
+            # ====================================
+            # LLM TRIGGER
+            # ====================================
+
+            current_time = time.time()
+
+            if current_time - last_llm_call >= LLM_INTERVAL:
+
+                print("\n" + "=" * 70)
+                print("GENERATING MEETING SUGGESTIONS...")
+                print("=" * 70)
+
+                try:
+
+                    meeting_context = context.build_context()
+
+                    if meeting_context.strip():
+
+                        suggestion = (
+                            llm.generate_suggestions(
+                                meeting_context
+                            )
+                        )
+
+                        print("\n")
+                        print("🤖 MEETING ASSISTANT")
+                        print("-" * 70)
+                        print(suggestion)
+                        print("-" * 70)
+
+                    last_llm_call = current_time
+
+                except Exception as e:
+
+                    print(
+                        "\n⚠️ LLM request failed:"
+                    )
+
+                    print(e)
 
             # ====================================
             # DISPLAY
             # ====================================
 
-            print("\n")
+            print("\n" + "=" * 70)
+            print("CLEAN CONVERSATION")
             print("=" * 70)
 
-            print(
-                f"MEETING TRANSCRIPT "
-                f"(CHUNK {chunk_number})"
-            )
+            print(conversation)
 
-            print("=" * 70)
+            print("\nQUESTIONS DETECTED:")
 
-            for segment in combined:
-
-                start = segment["start"]
-                end = segment["end"]
+            for question in questions:
 
                 print(
-                    f"[{start:06.1f} - "
-                    f"{end:06.1f}] "
-                    f"[{segment['speaker']}] "
-                    f"{segment['text']}"
+                    f"[{question['speaker']}] "
+                    f"{question['text']}"
+                )
+
+            print("\nIMPORTANT POINTS:")
+
+            for item in important:
+
+                print(
+                    f"[{item['speaker']}] "
+                    f"{item['text']}"
                 )
 
             print("=" * 70)
-
-            print("\nCURRENT MEETING CONTEXT")
-
-            print(
-                context.build_context()
-            )
 
     except KeyboardInterrupt:
 
