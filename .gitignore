@@ -80,3 +80,13 @@ Thumbs.db
 *.tmp
 *.temp
 *.swp
+
+# ==============================
+# Node.js / Electron
+# ==============================
+
+node_modules/
+dist/
+out/
+.pnp/
+.pnp.js

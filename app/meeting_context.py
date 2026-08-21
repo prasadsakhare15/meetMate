@@ -1,3 +1,4 @@
+import threading
 from collections import deque
 
 
@@ -8,6 +9,7 @@ class MeetingContext:
         recent_seconds=300,
         max_summary_items=20
     ):
+        self.lock = threading.Lock()
         self.recent_seconds = recent_seconds
         self.max_summary_items = max_summary_items
 
@@ -29,13 +31,13 @@ class MeetingContext:
     # =========================================================
 
     def add_segments(self, segments):
+        with self.lock:
+            for segment in segments:
 
-        for segment in segments:
+                self.segments.append(segment)
+                self.recent_segments.append(segment)
 
-            self.segments.append(segment)
-            self.recent_segments.append(segment)
-
-        self._move_old_segments()
+            self._move_old_segments()
 
     # =========================================================
     # MOVE OLD SEGMENTS
@@ -125,48 +127,48 @@ class MeetingContext:
     # =========================================================
 
     def build_context(self):
+        with self.lock:
+            output = []
 
-        output = []
+            # ---------------------------------
+            # LONG TERM SUMMARY
+            # ---------------------------------
 
-        # ---------------------------------
-        # LONG TERM SUMMARY
-        # ---------------------------------
-
-        if self.summary:
-
-            output.append(
-                "MEETING SUMMARY:"
-            )
-
-            for item in self.summary:
+            if self.summary:
 
                 output.append(
-                    f"- {item}"
+                    "MEETING SUMMARY:"
                 )
 
-            output.append("")
+                for item in self.summary:
 
-        # ---------------------------------
-        # RECENT CONVERSATION
-        # ---------------------------------
+                    output.append(
+                        f"- {item}"
+                    )
 
-        output.append(
-            "RECENT CONVERSATION:"
-        )
+                output.append("")
 
-        for segment in self.recent_segments:
-
-            timestamp = self._format_time(
-                segment["start"]
-            )
+            # ---------------------------------
+            # RECENT CONVERSATION
+            # ---------------------------------
 
             output.append(
-                f"[{timestamp}] "
-                f"{segment['speaker']}: "
-                f"{segment['text']}"
+                "RECENT CONVERSATION:"
             )
 
-        return "\n".join(output)
+            for segment in self.recent_segments:
+
+                timestamp = self._format_time(
+                    segment["start"]
+                )
+
+                output.append(
+                    f"[{timestamp}] "
+                    f"{segment['speaker']}: "
+                    f"{segment['text']}"
+                )
+
+            return "\n".join(output)
 
     # =========================================================
 

@@ -1,4 +1,5 @@
 import time
+
 from llm_client import LLMClient
 from difflib import SequenceMatcher
 
@@ -7,10 +8,15 @@ from transcriber import Transcriber
 from transcript_store import TranscriptStore
 from meeting_context import MeetingContext
 from conversation_processor import ConversationProcessor
+from ui_server import UIServer
 
 
-CHUNK_DURATION = 60
+CHUNK_DURATION = 30
 OVERLAP = 5
+
+context = None
+llm = None
+ui_server = None
 
 
 def normalize_text(text):
@@ -109,7 +115,100 @@ def deduplicate_segments(
     return result
 
 
+def handle_ui_message(message):
+
+    if message.get("type") != "HELP_ME":
+        return
+
+    print("\n")
+    print("=" * 70)
+    print("🚨 HELP ME REQUESTED")
+    print("=" * 70)
+
+    # Get the latest meeting context
+    meeting_context = context.build_context()
+
+    print("\nSending context to LLM...")
+
+    # Tell Electron that we're processing
+    ui_server.send({
+        "type": "STATUS",
+        "text": "THINKING..."
+    })
+
+    try:
+
+        suggestion = (
+            llm.generate_suggestions(
+                meeting_context
+            )
+        )
+
+        print("\nLLM RESPONSE:")
+        print(suggestion)
+
+        # Send structured response to Electron
+        ui_server.send({
+
+            "type": "SUGGESTION",
+
+            "question_detected":
+                suggestion.get(
+                    "question_detected",
+                    True
+                ),
+
+            "question":
+                suggestion.get(
+                    "question",
+                    ""
+                ),
+
+            "answer":
+                suggestion.get(
+                    "answer",
+                    ""
+                ),
+
+            "follow_up":
+                suggestion.get(
+                    "follow_up",
+                    ""
+                ),
+
+            "key_point":
+                suggestion.get(
+                    "key_point",
+                    ""
+                ),
+
+            "confidence":
+                suggestion.get(
+                    "confidence",
+                    0
+                )
+        })
+
+        ui_server.send({
+            "type": "STATUS",
+            "text": "LISTENING"
+        })
+
+    except Exception as e:
+
+        print(
+            "LLM error:",
+            e
+        )
+
+        ui_server.send({
+            "type": "STATUS",
+            "text": "ERROR"
+        })
+
+
 def main():
+    global context, llm, ui_server
 
     capture = DualAudioCapture(
         chunk_duration=CHUNK_DURATION,
@@ -153,6 +252,14 @@ def main():
         processor = ConversationProcessor()
 
         llm = LLMClient()
+
+        ui_server = UIServer()
+
+        ui_server.set_message_callback(
+            handle_ui_message
+        )
+
+        ui_server.start()
 
         last_llm_call = time.time()
         LLM_INTERVAL = 180  # 3 minutes
@@ -441,25 +548,76 @@ def main():
 
                     if meeting_context.strip():
 
-                        suggestion = (
-                            llm.generate_suggestions(
-                                meeting_context
-                            )
+                        suggestion = llm.generate_suggestions(
+                            meeting_context
                         )
 
-                        print("\n")
-                        print("🤖 MEETING ASSISTANT")
+                        print("\n🤖 MEETING COPILOT")
                         print("-" * 70)
-                        print(suggestion)
+
+                        print(
+                            "Question detected:",
+                            suggestion["question_detected"]
+                        )
+
+                        print(
+                            "Question:",
+                            suggestion["question"]
+                        )
+
+                        print(
+                            "Answer:",
+                            suggestion["answer"]
+                        )
+
+                        print(
+                            "Follow-up:",
+                            suggestion["follow_up"]
+                        )
+
+                        print(
+                            "Key point:",
+                            suggestion["key_point"]
+                        )
+
+                        print(
+                            "Confidence:",
+                            suggestion["confidence"]
+                        )
+
                         print("-" * 70)
+
+
+                        # Send structured result to Electron
+
+                        ui_server.send({
+
+                            "type": "SUGGESTION",
+
+                            "question_detected":
+                                suggestion["question_detected"],
+
+                            "question":
+                                suggestion["question"],
+
+                            "answer":
+                                suggestion["answer"],
+
+                            "follow_up":
+                                suggestion["follow_up"],
+
+                            "key_point":
+                                suggestion["key_point"],
+
+                            "confidence":
+                                suggestion["confidence"]
+                        })
 
                     last_llm_call = current_time
 
                 except Exception as e:
 
-                    print(
-                        "\n⚠️ LLM request failed:"
-                    )
+                    print("\n⚠️ LLM request failed:")
 
                     print(e)
 

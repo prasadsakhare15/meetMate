@@ -164,7 +164,7 @@ class ConversationProcessor:
             "client",
             "customer"
         )
-
+        
         important = []
 
         for segment in segments:

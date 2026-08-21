@@ -1,0 +1,467 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+
+    font-family:
+        "Segoe UI",
+        Arial,
+        sans-serif;
+
+    background: transparent;
+}
+
+body {
+    overflow: hidden;
+}
+
+.window {
+
+    width: 100%;
+    height: 100%;
+
+    background:
+        rgba(18, 18, 22, 0.97);
+
+    color: #f5f5f5;
+
+    border-radius: 16px;
+
+    overflow: hidden;
+
+    border: 1px solid
+        rgba(255, 255, 255, 0.10);
+
+    box-shadow:
+        0 18px 60px
+        rgba(0, 0, 0, 0.45);
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* ==============================
+   HEADER
+   ============================== */
+
+
+
+.header {
+    height: 64px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 14px 0 16px;
+
+    border-bottom:
+        1px solid
+        rgba(255, 255, 255, 0.08);
+
+    user-select: none;
+
+    -webkit-app-region: drag;
+}
+
+.brand {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+.logo {
+
+    width: 32px;
+    height: 32px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    background:
+        rgba(255, 255, 255, 0.08);
+
+    font-size: 17px;
+}
+
+.title {
+
+    font-size: 14px;
+
+    font-weight: 600;
+}
+
+.status {
+
+    margin-top: 3px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    font-size: 10px;
+
+    color: #999;
+}
+
+#status-dot {
+
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #888;
+}
+
+#status-dot.connected {
+
+    background: #4ade80;
+
+    box-shadow:
+        0 0 7px
+        rgba(74, 222, 128, 0.7);
+}
+
+.window-controls {
+    display: flex;
+    gap: 4px;
+
+    -webkit-app-region: no-drag;
+}
+
+.window-controls button {
+    width: 28px;
+    height: 28px;
+
+    border: none;
+    border-radius: 7px;
+
+    background: transparent;
+    color: #999;
+
+    font-size: 17px;
+
+    cursor: pointer;
+
+    -webkit-app-region: no-drag;
+}
+
+.window-controls button:hover {
+
+    background:
+        rgba(255, 255, 255, 0.08);
+
+    color: white;
+}
+
+
+/* ==============================
+   CONTENT
+   ============================== */
+
+.content {
+
+    padding: 16px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 14px;
+
+    flex: 1;
+
+    overflow-y: auto;
+}
+
+.content::-webkit-scrollbar {
+
+    width: 4px;
+}
+
+.content::-webkit-scrollbar-thumb {
+
+    background: #444;
+
+    border-radius: 10px;
+}
+
+
+/* ==============================
+   SECTIONS
+   ============================== */
+
+.section {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+.section-header {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+}
+
+.section-label {
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.9px;
+
+    color: #85858d;
+}
+
+
+/* ==============================
+   QUESTION
+   ============================== */
+
+.question {
+
+    font-size: 13px;
+
+    line-height: 1.5;
+
+    color: #d6d6da;
+}
+
+.question:not(.empty) {
+
+    padding: 10px 11px;
+
+    border-radius: 9px;
+
+    background:
+        rgba(255, 255, 255, 0.045);
+}
+
+
+/* ==============================
+   ANSWER
+   ============================== */
+
+.answer-section {
+
+    padding: 13px;
+
+    border-radius: 11px;
+
+    background:
+        rgba(255, 255, 255, 0.055);
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.07);
+}
+
+.answer {
+
+    font-size: 14px;
+
+    line-height: 1.55;
+
+    color: #ffffff;
+}
+
+
+/* ==============================
+   FOLLOW UP
+   ============================== */
+
+.followup {
+
+    font-size: 13px;
+
+    line-height: 1.45;
+
+    color: #d0d0d4;
+}
+
+
+/* ==============================
+   KEY POINT
+   ============================== */
+
+.keypoint {
+
+    font-size: 12px;
+
+    line-height: 1.45;
+
+    color: #aaaab2;
+}
+
+
+/* ==============================
+   EMPTY
+   ============================== */
+
+.empty {
+
+    color: #66666d;
+}
+
+
+/* ==============================
+   BUTTONS
+   ============================== */
+
+.small-btn {
+
+    border: none;
+
+    padding: 4px 8px;
+
+    border-radius: 6px;
+
+    background:
+        rgba(255, 255, 255, 0.08);
+
+    color: #aaa;
+
+    font-size: 10px;
+
+    cursor: pointer;
+}
+
+.small-btn:hover {
+
+    background:
+        rgba(255, 255, 255, 0.14);
+
+    color: white;
+}
+
+
+/* ==============================
+   FOOTER
+   ============================== */
+
+.footer {
+
+    height: 44px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 0 14px;
+
+    border-top:
+        1px solid
+        rgba(255, 255, 255, 0.07);
+}
+
+.action-btn {
+
+    border: none;
+
+    background: transparent;
+
+    color: #aaa;
+
+    font-size: 11px;
+
+    cursor: pointer;
+}
+
+.action-btn:hover {
+
+    color: white;
+}
+
+.shortcut {
+
+    font-size: 9px;
+
+    color: #666;
+}
+
+
+/* ==============================
+   COLLAPSED
+   ============================== */
+
+.window.collapsed {
+
+    height: 64px;
+}
+
+.window.collapsed .content,
+.window.collapsed .footer,
+.window.collapsed .help-button {
+
+    display: none;
+}
+
+/* ==============================
+   HELP BUTTON
+   ============================== */
+
+.help-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: calc(100% - 32px);
+    margin: 0 16px 16px 16px;
+    padding: 12px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-app-region: no-drag;
+}
+
+.help-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+    background: linear-gradient(135deg, #f87171, #e11d48);
+}
+
+.help-button:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.help-button span {
+    font-size: 9px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.25);
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}

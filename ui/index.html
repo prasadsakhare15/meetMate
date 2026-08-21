@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Meeting Copilot</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="window">
+
+    <!-- HEADER -->
+    <div class="header" id="drag-region">
+
+        <div class="brand">
+            <div class="logo">✦</div>
+
+            <div>
+                <div class="title">Meeting Copilot</div>
+
+                <div class="status">
+                    <span id="status-dot"></span>
+                    <span id="status">Connecting...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="window-controls">
+
+            <button id="collapse-btn" title="Collapse">
+                −
+            </button>
+
+            <button id="close-btn" title="Close">
+                ×
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- MAIN CONTENT -->
+    <div class="content" id="content">
+
+        <!-- QUESTION -->
+        <section class="section">
+
+            <div class="section-label">
+                <span>QUESTION</span>
+            </div>
+
+            <div
+                id="question"
+                class="question empty"
+            >
+                Listening for a question...
+            </div>
+
+        </section>
+
+
+        <!-- ANSWER -->
+        <section class="section answer-section">
+
+            <div class="section-header">
+
+                <span class="section-label">
+                    SUGGESTED RESPONSE
+                </span>
+
+                <button
+                    id="copy-btn"
+                    class="small-btn"
+                >
+                    Copy
+                </button>
+
+            </div>
+
+            <div
+                id="answer"
+                class="answer empty"
+            >
+                Your suggested response will appear here.
+            </div>
+
+        </section>
+
+
+        <!-- FOLLOW UP -->
+        <section class="section">
+
+            <div class="section-label">
+                FOLLOW-UP
+            </div>
+
+            <div
+                id="followup"
+                class="followup empty"
+            >
+                —
+            </div>
+
+        </section>
+
+
+        <!-- KEY POINT -->
+        <section class="section">
+
+            <div class="section-label">
+                KEY POINT
+            </div>
+
+            <div
+                id="keypoint"
+                class="keypoint empty"
+            >
+                —
+            </div>
+
+        </section>
+
+    </div>
+
+
+    <!-- FOOTER -->
+    <div class="footer" id="footer">
+
+        <button
+            id="regenerate-btn"
+            class="action-btn"
+        >
+            ↻ Regenerate
+        </button>
+
+        <span class="shortcut">
+            Ctrl + Space
+        </span>
+
+    </div>
+
+    <button id="helpButton" class="help-button">
+    🚨 HELP ME
+        <span>Ctrl + Space</span>
+    </button>
+
+</div>
+
+<script src="renderer.js"></script>
+
+</body>
+</html>
