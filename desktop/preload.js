@@ -33,6 +33,10 @@ contextBridge.exposeInMainWorld(
 
         onHotkey: (callback) => {
             ipcRenderer.on("hotkey", (event) => callback());
+        },
+
+        sendToAgent: (message) => {
+            ipcRenderer.send("agent-message", message);
         }
     }
 );

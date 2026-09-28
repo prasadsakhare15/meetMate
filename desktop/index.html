@@ -44,6 +44,30 @@
     <!-- MAIN CONTENT -->
     <div class="content" id="content">
 
+        <section class="setup-panel" id="setup-panel">
+
+            <div class="section-label">AUDIO</div>
+
+            <label class="field-label" for="output-select">
+                Speakers / headphones
+            </label>
+            <select id="output-select" class="device-select">
+                <option value="">Waiting for devices...</option>
+            </select>
+
+            <label class="field-label" for="mic-select">
+                Microphone
+            </label>
+            <select id="mic-select" class="device-select">
+                <option value="">Waiting for devices...</option>
+            </select>
+
+            <button id="capture-btn" class="capture-btn">
+                Start meeting
+            </button>
+
+        </section>
+
         <!-- QUESTION -->
         <section class="section">
 

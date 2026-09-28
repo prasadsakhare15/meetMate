@@ -138,6 +138,24 @@ body {
         rgba(74, 222, 128, 0.7);
 }
 
+#status-dot.thinking {
+
+    background: #fbbf24;
+
+    box-shadow:
+        0 0 7px
+        rgba(251, 191, 36, 0.7);
+}
+
+#status-dot.error {
+
+    background: #f87171;
+
+    box-shadow:
+        0 0 7px
+        rgba(248, 113, 113, 0.7);
+}
+
 .window-controls {
     display: flex;
     gap: 4px;
@@ -416,9 +434,74 @@ body {
 
 .window.collapsed .content,
 .window.collapsed .footer,
-.window.collapsed .help-button {
+.window.collapsed .help-button,
+.window.collapsed .setup-panel {
 
     display: none;
+}
+
+/* ==============================
+   SETUP / DEVICES
+   ============================== */
+
+.setup-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 4px;
+    -webkit-app-region: no-drag;
+}
+
+.field-label {
+    font-size: 10px;
+    color: #8b8b93;
+}
+
+.device-select {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.06);
+    color: #f5f5f5;
+    font-size: 12px;
+    outline: none;
+}
+
+.device-select:focus {
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.capture-btn {
+    margin-top: 6px;
+    border: none;
+    border-radius: 9px;
+    padding: 10px 12px;
+    background: rgba(74, 222, 128, 0.16);
+    color: #86efac;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.capture-btn:hover {
+    background: rgba(74, 222, 128, 0.24);
+}
+
+.capture-btn.running {
+    background: rgba(248, 113, 113, 0.16);
+    color: #fca5a5;
+}
+
+.capture-btn.running:hover {
+    background: rgba(248, 113, 113, 0.24);
+}
+
+.capture-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
 /* ==============================
@@ -454,6 +537,13 @@ body {
 .help-button:active {
     transform: translateY(1px);
     box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.help-button.disabled,
+.action-btn.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 .help-button span {

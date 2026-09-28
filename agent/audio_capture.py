@@ -79,6 +79,78 @@ class DualAudioCapture:
     # DEVICE SELECTION
     # =================================================
 
+    @staticmethod
+    def _device_name(device):
+        return str(device.get("name", "")).replace("\x00", "").strip()
+
+    def serialize_output_devices(self):
+
+        devices = []
+
+        for i in range(self.audio.get_device_count()):
+            device = self.audio.get_device_info_by_index(i)
+
+            if (
+                device["hostApi"] == self.wasapi["index"]
+                and device["maxOutputChannels"] > 0
+            ):
+                devices.append({
+                    "index": device["index"],
+                    "name": self._device_name(device),
+                })
+
+        return devices
+
+    def serialize_microphones(self):
+
+        devices = []
+
+        for i in range(self.audio.get_device_count()):
+            device = self.audio.get_device_info_by_index(i)
+
+            if device["maxInputChannels"] > 0:
+                devices.append({
+                    "index": device["index"],
+                    "name": self._device_name(device),
+                })
+
+        return devices
+
+    def resolve_loopback(self, output_index):
+
+        output_device = self.audio.get_device_info_by_index(
+            int(output_index)
+        )
+
+        loopback = (
+            self.audio
+            .get_wasapi_loopback_analogue_by_dict(
+                output_device
+            )
+        )
+
+        if loopback is None:
+            raise RuntimeError(
+                "Could not find WASAPI loopback device."
+            )
+
+        print(
+            f"Selected output: {self._device_name(output_device)}"
+        )
+        print(f"Loopback: {self._device_name(loopback)}")
+
+        return loopback
+
+    def resolve_microphone(self, mic_index):
+
+        device = self.audio.get_device_info_by_index(int(mic_index))
+
+        if device["maxInputChannels"] <= 0:
+            raise RuntimeError("Selected device is not a microphone.")
+
+        print(f"Selected microphone: {self._device_name(device)}")
+        return device
+
     def list_output_devices(self):
 
         devices = []
@@ -737,6 +809,17 @@ class DualAudioCapture:
 
             self.system_stream = None
 
+        with self.mic_lock:
+            self.mic_buffer.clear()
+            self.mic_frames = 0
+
+        with self.system_lock:
+            self.system_buffer.clear()
+            self.system_frames = 0
+
+        self.chunk_number = 1
+        self.mic_thread = None
+        self.system_thread = None
         self.capture_started = False
 
         print(

@@ -24,9 +24,10 @@ ENV/
 !.env.example
 
 # ==============================
-# Audio Recordings
+# Local agent — audio recordings
 # ==============================
 
+agent/recordings/
 recordings/
 *.wav
 *.mp3
@@ -35,12 +36,11 @@ recordings/
 *.ogg
 
 # ==============================
-# Transcripts
+# Cloud server — transcripts
 # ==============================
 
+server/transcripts/
 transcripts/
-*.txt
-*.json
 
 # ==============================
 # Whisper / ML Models
@@ -90,3 +90,13 @@ dist/
 out/
 .pnp/
 .pnp.js
+
+# ==============================
+# Legacy paths (removed)
+# ==============================
+
+client/
+app/
+shared/
+ui/
+venv/
