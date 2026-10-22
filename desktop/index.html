@@ -10,6 +10,92 @@
 
 <div class="window">
 
+    <!-- LOGIN OVERLAY -->
+    <div class="login-overlay" id="login-overlay">
+
+        <div class="login-card">
+
+            <div class="login-logo">✦</div>
+
+            <div class="login-title">
+                Sign in to Meeting Copilot
+            </div>
+
+            <div class="login-subtitle">
+                Your account keeps meetings private to you.
+            </div>
+
+            <label class="field-label" for="login-username">
+                Username
+            </label>
+            <input
+                id="login-username"
+                class="login-input"
+                type="text"
+                autocomplete="username"
+                spellcheck="false"
+            >
+
+            <label class="field-label" id="label-password" for="login-password">
+                Password
+            </label>
+            <input
+                id="login-password"
+                class="login-input"
+                type="password"
+                autocomplete="current-password"
+            >
+
+            <div id="new-password-container" style="display: none;">
+                <label class="field-label" for="login-new-password" style="margin-top: 7px; display: block;">
+                    New password
+                </label>
+                <input
+                    id="login-new-password"
+                    class="login-input"
+                    type="password"
+                    autocomplete="new-password"
+                >
+            </div>
+
+            <div
+                id="login-error"
+                class="login-error"
+            >
+            </div>
+
+            <button
+                id="login-btn"
+                class="login-btn"
+            >
+                Sign in
+            </button>
+
+            <div style="display: flex; gap: 8px;">
+                <button
+                    id="register-btn"
+                    class="login-btn secondary"
+                    style="flex: 1;"
+                >
+                    Create account
+                </button>
+                <button
+                    id="show-change-password-btn"
+                    class="login-btn secondary"
+                    style="flex: 1;"
+                >
+                    Change password
+                </button>
+            </div>
+
+            <div class="login-hint">
+                Runs against your own cloud server.
+            </div>
+
+        </div>
+
+    </div>
+
     <!-- HEADER -->
     <div class="header" id="drag-region">
 

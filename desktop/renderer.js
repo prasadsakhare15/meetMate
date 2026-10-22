@@ -51,10 +51,42 @@ const micSelect =
 const captureBtn =
     document.getElementById("capture-btn");
 
+const loginOverlay =
+    document.getElementById("login-overlay");
+
+const loginUsername =
+    document.getElementById("login-username");
+
+const loginPassword =
+    document.getElementById("login-password");
+
+const loginNewPassword =
+    document.getElementById("login-new-password");
+
+const newPasswordContainer =
+    document.getElementById("new-password-container");
+
+const labelPassword =
+    document.getElementById("label-password");
+
+const loginError =
+    document.getElementById("login-error");
+
+const loginBtn =
+    document.getElementById("login-btn");
+
+const registerBtn =
+    document.getElementById("register-btn");
+
+const showChangePasswordBtn =
+    document.getElementById("show-change-password-btn");
+
 let isThinking = false;
 let isCapturing = false;
 let isConnected = false;
 let whisperReady = false;
+let isAuthenticated = false;
+let isAuthPending = false;
 
 
 // ========================================
@@ -71,7 +103,7 @@ window.meetingAssistant.onBackendStatus(
             updateCaptureButton();
             setActionsEnabled(false);
 
-            if (!isThinking) {
+            if (!isThinking && isAuthenticated) {
                 setAppStatus("Disconnected", "disconnected");
             }
             return;
@@ -81,7 +113,14 @@ window.meetingAssistant.onBackendStatus(
             return;
         }
 
+        if (!isAuthenticated) {
+            setAppStatus("Sign in to continue");
+            updateCaptureButton();
+            return;
+        }
+
         setAppStatus("LIVE", "connected");
+        updateCaptureButton();
         window.meetingAssistant.sendToAgent({
             type: "LIST_DEVICES"
         });
@@ -123,8 +162,30 @@ window.meetingAssistant.onMessage(
         }
 
         if (message.type === "SUGGESTION") {
+            // Phase 0 timing: epoch ms so this line can be compared with
+            // the agent's [timing] logs (same machine clock).
+            console.log("[timing] ui_shown", Date.now(), new Date().toISOString());
             expandWindow();
             updateSuggestion(message);
+        }
+
+        if (message.type === "MEETING_STARTED") {
+
+            if (message.resumed) {
+                setAppStatus("Reconnected", "connected");
+            }
+
+            return;
+        }
+
+        if (message.type === "AUTH_RESULT") {
+            handleAuthResult(message);
+            return;
+        }
+
+        if (message.type === "AUTH_REQUIRED") {
+            handleAuthRequired();
+            return;
         }
 
         if (message.type === "STATUS") {
@@ -179,6 +240,132 @@ function handleStatus(text) {
     }
 
     setAppStatus(text, "connected");
+}
+
+
+// ========================================
+// AUTHENTICATION
+// ========================================
+
+function showLogin() {
+
+    loginOverlay.classList.add("visible");
+
+    loginPassword.value = "";
+    if (loginNewPassword) loginNewPassword.value = "";
+    showLoginError("");
+    setChangePasswordMode(false);
+
+    setTimeout(() => loginUsername.focus(), 50);
+}
+
+
+function hideLogin() {
+    loginOverlay.classList.remove("visible");
+    setChangePasswordMode(false);
+}
+
+
+function showLoginError(text) {
+    loginError.textContent = text || "";
+}
+
+
+function setAuthPending(pending) {
+
+    loginBtn.disabled = pending;
+    registerBtn.disabled = pending;
+
+    loginBtn.textContent = pending
+        ? "Signing in..."
+        : "Sign in";
+}
+
+
+function submitAuth(action) {
+
+    if (isAuthPending) {
+        return;
+    }
+
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value;
+
+    if (!username || !password) {
+        showLoginError("Enter a username and password.");
+        return;
+    }
+    
+    let newPassword = undefined;
+    if (action === "update_password") {
+        newPassword = loginNewPassword.value;
+        if (!newPassword) {
+            showLoginError("Enter your new password.");
+            return;
+        }
+    }
+
+    isAuthPending = true;
+    setAuthPending(true);
+    showLoginError("");
+
+    window.meetingAssistant.sendToAgent({
+        type: "AUTH",
+        action: action,
+        username: username,
+        password: password,
+        new_password: newPassword
+    });
+}
+
+
+function handleAuthResult(message) {
+
+    isAuthPending = false;
+    setAuthPending(false);
+
+    if (!message.ok) {
+        showLoginError(message.error || "Sign in failed.");
+        return;
+    }
+
+    if (message.action === "update_password") {
+        showLoginError("Password updated successfully.");
+        loginError.style.color = "#4ade80"; // green
+        setTimeout(() => {
+            loginError.style.color = "";
+            setChangePasswordMode(false);
+        }, 2000);
+        return;
+    }
+
+    isAuthenticated = true;
+    hideLogin();
+
+    if (isConnected) {
+        setAppStatus("LIVE", "connected");
+        updateCaptureButton();
+        window.meetingAssistant.sendToAgent({
+            type: "LIST_DEVICES"
+        });
+    } else {
+        setAppStatus("Signed in");
+    }
+}
+
+
+function handleAuthRequired() {
+
+    isAuthenticated = false;
+    isCapturing = false;
+
+    updateCaptureButton();
+    setActionsEnabled(false);
+    showLogin();
+
+    if (!isThinking) {
+        setAppStatus("Sign in to continue");
+    }
 }
 
 
@@ -247,7 +434,7 @@ function fillDeviceSelect(select, devices) {
 
 function updateCaptureButton() {
 
-    captureBtn.disabled = !isConnected;
+    captureBtn.disabled = !isConnected || !isAuthenticated;
 
     if (isCapturing) {
         captureBtn.textContent = "Stop meeting";
@@ -469,7 +656,7 @@ captureBtn.addEventListener(
     "click",
     () => {
 
-        if (!isConnected || captureBtn.disabled) {
+        if (!isConnected || !isAuthenticated || captureBtn.disabled) {
             return;
         }
 
@@ -488,5 +675,51 @@ captureBtn.addEventListener(
     }
 );
 
+let isChangePasswordMode = false;
+
+function setChangePasswordMode(active) {
+    isChangePasswordMode = active;
+    if (active) {
+        newPasswordContainer.style.display = "block";
+        labelPassword.textContent = "Current Password";
+        loginBtn.textContent = "Update password";
+        showChangePasswordBtn.textContent = "Cancel";
+        registerBtn.style.display = "none";
+    } else {
+        newPasswordContainer.style.display = "none";
+        labelPassword.textContent = "Password";
+        loginBtn.textContent = "Sign in";
+        showChangePasswordBtn.textContent = "Change password";
+        registerBtn.style.display = "block";
+        if (loginNewPassword) loginNewPassword.value = "";
+    }
+}
+
+showChangePasswordBtn.addEventListener("click", () => {
+    setChangePasswordMode(!isChangePasswordMode);
+    showLoginError("");
+});
+
+loginBtn.addEventListener(
+    "click",
+    () => submitAuth(isChangePasswordMode ? "update_password" : "login")
+);
+
+registerBtn.addEventListener(
+    "click",
+    () => submitAuth("register")
+);
+
+[loginUsername, loginPassword, loginNewPassword].forEach((input) => {
+    if (input) {
+        input.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                submitAuth(isChangePasswordMode ? "update_password" : "login");
+            }
+        });
+    }
+});
+
 setActionsEnabled(false);
 updateCaptureButton();
+showLogin();

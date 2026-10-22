@@ -5,23 +5,53 @@ from datetime import datetime
 
 class TranscriptStore:
 
-    def __init__(self, output_dir="transcripts"):
+    def __init__(self, output_dir="transcripts", label=None):
+        """`label` keeps two meetings started in the same second apart."""
 
         os.makedirs(output_dir, exist_ok=True)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        suffix = f"_{label}" if label else ""
 
         self.txt_file = os.path.join(
             output_dir,
-            f"meeting_{timestamp}.txt"
+            f"meeting_{timestamp}{suffix}.txt"
         )
 
         self.json_file = os.path.join(
             output_dir,
-            f"meeting_{timestamp}.json"
+            f"meeting_{timestamp}{suffix}.json"
         )
 
         self.segments = []
+
+    @classmethod
+    def resume(cls, txt_file, json_file):
+        """Reopen an existing transcript pair so a resumed meeting appends to it."""
+
+        # Bypass __init__ on purpose: it would pick a new timestamp and
+        # create a second set of files.
+        store = cls.__new__(cls)
+
+        store.txt_file = txt_file
+        store.json_file = json_file
+        store.segments = []
+
+        if os.path.exists(json_file):
+
+            try:
+
+                with open(json_file, encoding="utf-8") as file:
+                    store.segments = json.load(file).get(
+                        "segments", []
+                    )
+
+            except (OSError, json.JSONDecodeError) as e:
+                print(f"Could not reload transcript {json_file}: {e}")
+
+        store.segments.sort(key=lambda x: x["start"])
+
+        return store
 
     def add_segments(self, segments):
         """Add pre-timestamped segments from the client."""

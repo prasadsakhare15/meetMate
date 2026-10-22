@@ -22,6 +22,8 @@ body {
 
 .window {
 
+    position: relative;
+
     width: 100%;
     height: 100%;
 
@@ -554,4 +556,149 @@ body {
     padding: 2px 6px;
     border-radius: 4px;
     letter-spacing: 0.5px;
+}
+
+
+/* ==============================
+   LOGIN OVERLAY
+   ============================== */
+
+.login-overlay {
+
+    /* Start below the header so close/collapse stay usable. */
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 64px;
+    bottom: 0;
+    z-index: 50;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        rgba(18, 18, 22, 0.99);
+
+    -webkit-app-region: no-drag;
+}
+
+.login-overlay.visible {
+    display: flex;
+}
+
+.login-card {
+
+    width: calc(100% - 48px);
+
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.login-logo {
+
+    width: 40px;
+    height: 40px;
+    margin-bottom: 6px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.08);
+
+    font-size: 20px;
+}
+
+.login-title {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.login-subtitle {
+
+    margin-bottom: 10px;
+
+    font-size: 11px;
+    line-height: 1.5;
+    color: #999;
+}
+
+.login-input {
+
+    width: 100%;
+    padding: 9px 10px;
+
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+
+    background: rgba(255, 255, 255, 0.06);
+    color: #f5f5f5;
+
+    font-size: 13px;
+    outline: none;
+}
+
+.login-input:focus {
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.login-error {
+
+    min-height: 15px;
+    margin-top: 2px;
+
+    font-size: 11px;
+    line-height: 1.35;
+    color: #f87171;
+}
+
+.login-btn {
+
+    margin-top: 4px;
+    padding: 10px 12px;
+
+    border: none;
+    border-radius: 9px;
+
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.login-btn:hover {
+    background: linear-gradient(135deg, #818cf8, #6366f1);
+}
+
+.login-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.login-btn.secondary {
+
+    margin-top: 0;
+
+    background: rgba(255, 255, 255, 0.08);
+    color: #c7c7cf;
+}
+
+.login-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: white;
+}
+
+.login-hint {
+
+    margin-top: 10px;
+
+    font-size: 9px;
+    text-align: center;
+    color: #55555c;
 }

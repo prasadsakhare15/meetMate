@@ -43,6 +43,21 @@ server/transcripts/
 transcripts/
 
 # ==============================
+# Cloud server — resumable meeting state
+# ==============================
+
+server/meetings/
+meetings/
+
+# ==============================
+# Cloud server — auth
+# ==============================
+
+server/users.db
+server/.secret_key
+
+
+# ==============================
 # Whisper / ML Models
 # ==============================
 
@@ -58,6 +73,11 @@ models/
 
 logs/
 *.log
+
+# Phase 0 latency timing output (agent)
+
+agent/timings/
+timings/
 
 # ==============================
 # IDE

@@ -62,6 +62,28 @@ class MeetingContext:
     def get_recent_conversation(self):
         return list(self.recent_segments)
 
+    def snapshot(self):
+        """Return everything needed to rebuild this context later."""
+
+        with self.lock:
+            return {
+                "summary": list(self.summary),
+                "recent_segments": list(self.recent_segments),
+                "pending_summary": list(self.pending_summary),
+            }
+
+    def restore(self, data):
+        """Rebuild this context from a previous snapshot()."""
+
+        with self.lock:
+            self.summary = list(data.get("summary", []))
+            self.recent_segments = deque(
+                data.get("recent_segments", [])
+            )
+            self.pending_summary = list(
+                data.get("pending_summary", [])
+            )
+
     def build_context(self):
         with self.lock:
             output = []

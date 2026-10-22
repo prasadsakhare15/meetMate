@@ -1,7 +1,9 @@
 import queue
 import threading
+import time
 
 from dedup import deduplicate_segments
+from timing_log import TIMING
 
 
 class TranscriptionWorker:
@@ -43,13 +45,27 @@ class TranscriptionWorker:
             "chunk_number": chunk_number,
         })
 
-    def stop(self):
+    def stop(self, join_timeout=60.0):
+        """Stop the worker.
+
+        Waits for the in-flight chunk to finish (and be sent) so the
+        caller can end the meeting afterwards; queued chunks are
+        discarded. A 35 s window takes ~20 s at `small`-model RTF, which
+        already exceeded the old 10 s join.
+        """
 
         self.stop_event.set()
         self.queue.put(None)
 
         if self.thread:
-            self.thread.join(timeout=10)
+            self.thread.join(timeout=join_timeout)
+
+            if self.thread.is_alive():
+                print(
+                    f"[chunk-worker] still transcribing after "
+                    f"{join_timeout:.0f}s — it may send after the "
+                    f"meeting ended."
+                )
 
     def _run(self):
 
@@ -72,14 +88,36 @@ class TranscriptionWorker:
         system_file = item["system_file"]
         mic_file = item["mic_file"]
         chunk_number = item["chunk_number"]
+        key = f"chunk-{chunk_number}"
+
+        TIMING.event("segment_ready", key=key, chunk=chunk_number)
 
         print(f"\n========== CHUNK {chunk_number} (transcribing) ==========")
 
         print("Transcribing OTHERS (local)...")
+        transcribe_started = time.monotonic()
         others_segments = self.transcriber.transcribe(system_file)
+        others_seconds = time.monotonic() - transcribe_started
 
         print("Transcribing YOU (local)...")
+        transcribe_started = time.monotonic()
         you_segments = self.transcriber.transcribe(mic_file)
+        you_seconds = time.monotonic() - transcribe_started
+
+        # Real-time factor: Whisper seconds per second of audio (< 1 is
+        # faster than real time).
+        audio_seconds = float(self.chunk_duration + self.overlap)
+
+        TIMING.event(
+            "transcript_ready",
+            key=key,
+            audio_s=round(audio_seconds, 3),
+            whisper_s=round(others_seconds + you_seconds, 3),
+            rtf_others=round(others_seconds / audio_seconds, 3),
+            rtf_you=round(you_seconds / audio_seconds, 3),
+            segs_others=len(others_segments),
+            segs_you=len(you_segments),
+        )
 
         chunk_start = (chunk_number - 1) * self.chunk_duration
         overlap_start = chunk_start

@@ -1,9 +1,24 @@
 import os
+import queue
+import time
 import wave
 import threading
 from collections import deque
 
 import pyaudiowpatch as pyaudio
+
+
+# Segmentation modes (SEGMENTATION_MODE env var).
+#
+#   "chunk" — original fixed-length chunks (30 s + 5 s overlap).
+#   "vad"   — small ~30 ms frames per channel, consumed by the VAD
+#             segmenter (agent/segmenter.py, Phase 2).
+MODE_CHUNK = "chunk"
+MODE_VAD = "vad"
+
+# How many frames may wait in the queue before the oldest is dropped
+# (~30 s of audio at 30 ms per frame).
+FRAME_QUEUE_MAX = 1000
 
 
 class DualAudioCapture:
@@ -12,10 +27,23 @@ class DualAudioCapture:
         self,
         chunk_duration=60,
         overlap=5,
-        output_dir="recordings"
+        output_dir="recordings",
+        mode=MODE_CHUNK,
+        frame_ms=30,
     ):
         self.chunk_duration = chunk_duration
         self.overlap = overlap
+
+        if mode not in (MODE_CHUNK, MODE_VAD):
+            raise ValueError(f"Unknown capture mode: {mode!r}")
+
+        self.mode = mode
+        self.frame_ms = frame_ms
+
+        # Small frames for the VAD segmenter (Phase 2). Bounded so a
+        # stalled consumer cannot grow memory without limit.
+        self.frame_queue = queue.Queue(maxsize=FRAME_QUEUE_MAX)
+        self.frames_dropped = 0
 
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
@@ -68,6 +96,11 @@ class DualAudioCapture:
         self.sample_width = 2  # int16
 
         self.frames_per_buffer = 1024
+
+        # Frames read per stream.read() call; set in start() — 1024 in
+        # chunk mode (unchanged), exactly frame_ms of audio in vad mode.
+        self.mic_read_frames = self.frames_per_buffer
+        self.system_read_frames = self.frames_per_buffer
 
         # -----------------------------------------
         # Chunking
@@ -337,6 +370,22 @@ class DualAudioCapture:
             )
 
         # -----------------------------------------
+        # Read size
+        # -----------------------------------------
+
+        if self.mode == MODE_VAD:
+            # Exactly frame_ms of audio per read, per channel.
+            self.mic_read_frames = max(
+                1, int(self.mic_sample_rate * self.frame_ms / 1000)
+            )
+            self.system_read_frames = max(
+                1, int(self.system_sample_rate * self.frame_ms / 1000)
+            )
+        else:
+            self.mic_read_frames = self.frames_per_buffer
+            self.system_read_frames = self.frames_per_buffer
+
+        # -----------------------------------------
         # Open microphone ONCE
         # -----------------------------------------
 
@@ -352,7 +401,7 @@ class DualAudioCapture:
             input_device_index=microphone_device[
                 "index"
             ],
-            frames_per_buffer=self.frames_per_buffer,
+            frames_per_buffer=self.mic_read_frames,
             start=True
         )
 
@@ -372,7 +421,7 @@ class DualAudioCapture:
             input_device_index=system_device[
                 "index"
             ],
-            frames_per_buffer=self.frames_per_buffer,
+            frames_per_buffer=self.system_read_frames,
             start=True
         )
 
@@ -420,17 +469,25 @@ class DualAudioCapture:
             try:
 
                 data = self.mic_stream.read(
-                    self.frames_per_buffer,
+                    self.mic_read_frames,
                     exception_on_overflow=False
                 )
 
-                with self.mic_lock:
-
-                    self.mic_buffer.append(data)
-
-                    self.mic_frames += (
-                        self.frames_per_buffer
+                if self.mode == MODE_VAD:
+                    self._emit_frame(
+                        "YOU",
+                        data,
+                        self.mic_sample_rate,
+                        self.mic_channels,
                     )
+                else:
+                    with self.mic_lock:
+
+                        self.mic_buffer.append(data)
+
+                        self.mic_frames += (
+                            self.mic_read_frames
+                        )
 
             except Exception as e:
 
@@ -455,17 +512,25 @@ class DualAudioCapture:
             try:
 
                 data = self.system_stream.read(
-                    self.frames_per_buffer,
+                    self.system_read_frames,
                     exception_on_overflow=False
                 )
 
-                with self.system_lock:
-
-                    self.system_buffer.append(data)
-
-                    self.system_frames += (
-                        self.frames_per_buffer
+                if self.mode == MODE_VAD:
+                    self._emit_frame(
+                        "OTHERS",
+                        data,
+                        self.system_sample_rate,
+                        self.system_channels,
                     )
+                else:
+                    with self.system_lock:
+
+                        self.system_buffer.append(data)
+
+                        self.system_frames += (
+                            self.system_read_frames
+                        )
 
             except Exception as e:
 
@@ -480,10 +545,68 @@ class DualAudioCapture:
                 break
 
     # =================================================
+    # FRAME EMISSION (vad mode)
+    # =================================================
+
+    def _emit_frame(self, channel, data, sample_rate, n_channels):
+        """Queue one small frame for the VAD segmenter (Phase 2)."""
+
+        duration = len(data) / (
+            self.sample_width * n_channels * sample_rate
+        )
+
+        frame = {
+            "channel": channel,
+            "pcm": data,
+            "sample_rate": sample_rate,
+            "channels": n_channels,
+            "sample_width": self.sample_width,
+            # Wall-clock time the frame finished arriving (epoch
+            # seconds), so segment start timestamps need no extra
+            # bookkeeping downstream.
+            "ts": time.time(),
+            "duration": duration,
+        }
+
+        try:
+            self.frame_queue.put_nowait(frame)
+
+        except queue.Full:
+            # Consumer is behind: drop the oldest frame so live audio
+            # stays fresh, then retry once.
+            try:
+                self.frame_queue.get_nowait()
+                self.frames_dropped += 1
+            except queue.Empty:
+                pass
+
+            try:
+                self.frame_queue.put_nowait(frame)
+            except queue.Full:
+                self.frames_dropped += 1
+
+    def drain_frames(self, max_items=64):
+        """Take up to max_items queued frames (FIFO)."""
+
+        frames = []
+
+        for _ in range(max_items):
+            try:
+                frames.append(self.frame_queue.get_nowait())
+            except queue.Empty:
+                break
+
+        return frames
+
+    # =================================================
     # CHUNK READY
     # =================================================
 
     def chunk_ready(self):
+
+        # The chunk path is disabled in vad mode — frames only.
+        if self.mode == MODE_VAD:
+            return False
 
         if not self.capture_started:
             return False
@@ -616,9 +739,9 @@ class DualAudioCapture:
         )
 
         # -----------------------------------------
-        # Remove ONLY 60 seconds.
+        # Remove only one chunk duration.
         #
-        # Keep the final 5 seconds!
+        # Keep the final `overlap` seconds!
         # -----------------------------------------
 
         mic_frames_to_remove = int(
@@ -816,6 +939,12 @@ class DualAudioCapture:
         with self.system_lock:
             self.system_buffer.clear()
             self.system_frames = 0
+
+        while True:
+            try:
+                self.frame_queue.get_nowait()
+            except queue.Empty:
+                break
 
         self.chunk_number = 1
         self.mic_thread = None
